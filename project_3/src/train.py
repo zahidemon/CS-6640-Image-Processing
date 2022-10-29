@@ -2,14 +2,23 @@ import os
 import argparse
 
 import numpy as np
+from utils import CNN_1Layer
 import torch
-from matplotlib import pyplot as plt
+from matplotlib import axis, pyplot as plt
 from torch import nn
+from random import randint
 
-from utils import NoiseDataset, CNN
-from torch.utils.data import DataLoader
+from utils import NoiseDataset, CNN_1Layer, CNN_5Layer, CNN_5Layer_NL, plot_images
+from torch.utils.data import DataLoader, Subset
+
+from multiprocessing import set_start_method
+try:
+    set_start_method('spawn')
+except RuntimeError:
+    pass
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print('Running on ', device)
 
 
 def train_loop(dataloader, model, loss_fn, optimizer):
@@ -18,29 +27,25 @@ def train_loop(dataloader, model, loss_fn, optimizer):
     returns an array of loss values over the training epoch
     """
     loss_array = []
-    accuracies = []
     model.train()
 
     size = len(dataloader.dataset)
     for batch, (X, y) in enumerate(dataloader):
         X, y = X.to(device), y.to(device)
         optimizer.zero_grad()
-
+        # print(X.shape, y.shape)
         pred = model(X)
         loss = loss_fn(pred, y)
 
         # backpropagation
         loss.backward()
         optimizer.step()
-
-        if batch % 200 == 0:  # print some status info
+        loss_array.append(loss.item())
+        if batch % 50 == 0:  # print some status info
             loss, current = loss.item(), batch * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
 
-        accuracies.append((pred.argmax(1) == y).type(torch.float).sum().item())
-
-        loss_array.append(loss.item())
-    return np.mean(loss_array), np.mean(accuracies)
+    return np.mean(loss_array)
 
 
 def test_loop(dataloader, model, loss_fn):
@@ -63,11 +68,9 @@ def test_loop(dataloader, model, loss_fn):
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
 
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
-
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(f"Test Error: \nAvg loss: {test_loss:>8f} \n")
 
     return test_loss, 100 * correct
 
@@ -88,7 +91,7 @@ if __name__ == "__main__":
 
     # tweak these constants as you see fit, or get them through 'argparse'
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    BATCH_SIZE = 16
+    BATCH_SIZE = 4
     EPOCHS = 5
     DATASET_LOC = "../Data/nn_data/pokemon/"
     LEARNING_RATE = 1
@@ -105,41 +108,39 @@ if __name__ == "__main__":
     # define dataloaders
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, num_workers=4)
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+    
+    # define your models
+    model = CNN_5Layer_NL()
+    model = model.to(float).to(device)
+    print(model)
 
-    # TODO: define your models
-    model = CNN()
-
-    # TODO: define your optimizer using learning rate and other hyperparameters
+    # define your optimizer using learning rate and other hyperparameters
     learning_rate = 1e-3
-    epochs = 5
+    epochs = 30
 
     # initialize optimizer
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     loss_fn = nn.MSELoss()  # use MSE loss for this project
 
-    train_losses, test_losses, train_acc, test_acc = [], [], [], []
+    train_losses, test_losses = [], []
 
     if not FLAGS.demo:
         for t in range(EPOCHS):
             print(f"Epoch {t+1}\n-------------------------------")
-            tr_loss, tr_acc,  = train_loop(train_dataloader, model, loss_fn, optimizer)
-            ts_loss, ts_acc = test_loop(test_dataloader, model, loss_fn)
+            tr_loss = train_loop(train_dataloader, model, loss_fn, optimizer)
+            ts_loss = test_loop(test_dataloader, model, loss_fn)
             train_losses.append(tr_loss)
-            train_acc.append(tr_acc)
             test_losses.append(ts_loss)
-            test_acc.append(ts_acc)
         print("Done!")
 
-    # TODO: save model
-    torch.save(model, '../models/model.pth')
-    # TODO: plot line charts of training and testing metrics (loss, accuracy)
-    epochs = range(1, EPOCHS)
+    # save model
+    torch.save(model, '../models/model_5Layer_NL.pth')
+    # plot line charts of training and testing metrics (loss, accuracy)
+    epochs = range(1, EPOCHS+1)
 
     # Plot and label the training and validation loss values
     plt.plot(epochs, train_losses, label='Training Loss')
     plt.plot(epochs, test_losses, label='Test Loss')
-    plt.plot(epochs, train_acc, label='Training Accuracy')
-    plt.plot(epochs, test_acc, label='Test Accuracy')
 
     # Add in a title and axes labels
     plt.title('Training and Validation Loss')
@@ -151,10 +152,33 @@ if __name__ == "__main__":
 
     # Display the plot
     plt.legend(loc='best')
-    plt.savefig("../out/plot.png")
+    plt.savefig("../out/plot_5Layer_NL.png")
     plt.show()
 
     # TODO: plot some of the testing images by passing them through the trained model
+    # model = torch.load("../models/model_5Layer.pth")
+    # print(model)
+    test_data_size = len(test_dataloader)
+    random_indexes = [randint(1, test_data_size-1) for _ in range(5)]
+    sample_set = Subset(test_dataset, random_indexes)
+    
+    sample_dataloader = DataLoader(sample_set, batch_size=1, shuffle=True)
+    print(len(sample_dataloader))
+    with torch.no_grad():
+        for i, (X, y) in enumerate(sample_dataloader):
+            # move images to GPU if needed
+            X, y = X.to(device), y.to(device)
+            # compute prediction and loss
+            print(X.shape, y.shape)
+            pred = model(X)
+            plot_images(
+                [
+                    y.cpu().detach().numpy().reshape((475, 475)),
+                    X.cpu().detach().numpy().reshape((475, 475)),
+                    pred.cpu().detach().numpy().reshape((475, 475))
+                ],
+                ["Ground Truth", "Noisy", "Predicted"], f"model_5Layer__NL_{i}"
+                )
 
     if FLAGS.demo:
         pass

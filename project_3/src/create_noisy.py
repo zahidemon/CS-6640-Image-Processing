@@ -109,7 +109,7 @@ def main(directory, train, num_of_samples, noise_indicator_low, noise_indicator_
             "NoiseType": noise_type,
             "NoisyImage": str(i) + ".png",
         }
-        io.imsave(directory_name + str(i) + ".png", (noisy_image*255.0).astype(np.uint8))
+        io.imsave(directory_name + str(i) + ".png", (noisy_image*255.0).astype(np.double))
     write_csv(csv_file_name, training_dict_list)
 
 
