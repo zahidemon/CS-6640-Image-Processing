@@ -110,13 +110,13 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
     
     # define your models
-    model = CNN_5Layer_NL()
+    model = CNN_5Layer()
     model = model.to(float).to(device)
     print(model)
 
     # define your optimizer using learning rate and other hyperparameters
     learning_rate = 1e-3
-    epochs = 30
+    epochs = 5
 
     # initialize optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
@@ -134,7 +134,7 @@ if __name__ == "__main__":
         print("Done!")
 
     # save model
-    torch.save(model, '../models/model_5Layer_NL.pth')
+    torch.save(model, '../models/model_5Layer.pth')
     # plot line charts of training and testing metrics (loss, accuracy)
     epochs = range(1, EPOCHS+1)
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     # Display the plot
     plt.legend(loc='best')
-    plt.savefig("../out/plot_5Layer_NL.png")
+    plt.savefig("../out/plot_5Layer.png")
     plt.show()
 
     # TODO: plot some of the testing images by passing them through the trained model
@@ -177,7 +177,7 @@ if __name__ == "__main__":
                     X.cpu().detach().numpy().reshape((475, 475)),
                     pred.cpu().detach().numpy().reshape((475, 475))
                 ],
-                ["Ground Truth", "Noisy", "Predicted"], f"model_5Layer__NL_{i}"
+                ["Ground Truth", "Noisy", "Predicted"], f"model_5Layer_{i}"
                 )
 
     if FLAGS.demo:
