@@ -114,11 +114,11 @@ def main(directory, train, num_of_samples, noise_indicator_low, noise_indicator_
 
 
 if __name__ == "__main__":
-    main("../Data/nn_data/cats/raw/", 1, 800, 0, 3)  ## creating 800 Samples of Training Data
-    main("../Data/nn_data/cats/raw/", 0, 400, 0, 3)  ## creating 400 Samples of Testing Data
+    main("Data/nn_data/cats/raw/", 1, 800, 0, 3)  ## creating 800 Samples of Training Data
+    main("Data/nn_data/cats/raw/", 0, 400, 0, 3)  ## creating 400 Samples of Testing Data
     main(
-        "../Data/nn_data/pokemon/raw/", 1, 800, 0, 3
+        "Data/nn_data/pokemon/raw/", 1, 800, 0, 3
     )  ## creating 800 Samples of Training Data
     main(
-        "../Data/nn_data/pokemon/raw/", 0, 400, 0, 3
+        "Data/nn_data/pokemon/raw/", 0, 400, 0, 3
     )  ## creating 400 Samples of Testing Data

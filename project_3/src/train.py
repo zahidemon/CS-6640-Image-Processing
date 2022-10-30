@@ -55,9 +55,8 @@ def test_loop(dataloader, model, loss_fn):
     """
     model.eval()
 
-    size = len(dataloader.dataset)
     num_batches = len(dataloader)
-    test_loss, correct = 0, 0
+    test_loss = 0
 
     with torch.no_grad():
         for X, y in dataloader:
@@ -69,18 +68,33 @@ def test_loop(dataloader, model, loss_fn):
             test_loss += loss_fn(pred, y).item()
 
     test_loss /= num_batches
-    correct /= size
     print(f"Test Error: \nAvg loss: {test_loss:>8f} \n")
 
-    return test_loss, 100 * correct
+    return test_loss
+
+parameters = {
+    "1_Layer": CNN_1Layer(),
+    "5_Layer": CNN_1Layer(),
+    "5_Layer_Relu": CNN_5Layer_NL(),
+}
 
 
 if __name__ == "__main__":
     # parse --demo flag, if not there FLAGS.demo == False
     parser = argparse.ArgumentParser()
     parser.add_argument("--demo", dest="demo", action="store_true")
+    parser.add_argument('--model', metavar='D', type=str, default="5_Layer",
+                        help='3 choices: 1_Layer, 5_Layer, 5_Layer_Relu')
+    parser.add_argument('--train_data', metavar='TR', type=str, default="pokemon",
+                        help='2 choices: Cats, pokemon')
+    parser.add_argument('--test_data', metavar='TS', type=str, default="cats",
+                        help='2 choices: Cats, pokemon')
     parser.set_defaults(demo=False)
-    FLAGS, unparsed = parser.parse_known_args()
+    FLAGS,unparsed = parser.parse_known_args()
+    model_name = FLAGS.model
+    train_data = FLAGS.train_data
+    test_data = FLAGS.test_data
+    print(FLAGS)
 
     # make output directory
     if not os.path.exists("./out/"):
@@ -91,9 +105,9 @@ if __name__ == "__main__":
 
     # tweak these constants as you see fit, or get them through 'argparse'
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-    BATCH_SIZE = 4
-    EPOCHS = 5
-    DATASET_LOC = "../Data/nn_data/pokemon/"
+    BATCH_SIZE = 2
+    EPOCHS = 10
+    DATASET_LOC = f"Data/nn_data/{train_data}/"
     LEARNING_RATE = 1
 
     train_dataset = NoiseDataset(
@@ -110,7 +124,7 @@ if __name__ == "__main__":
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
     
     # define your models
-    model = CNN_5Layer()
+    model = parameters[model_name]
     model = model.to(float).to(device)
     print(model)
 
@@ -133,53 +147,85 @@ if __name__ == "__main__":
             test_losses.append(ts_loss)
         print("Done!")
 
-    # save model
-    torch.save(model, '../models/model_5Layer.pth')
-    # plot line charts of training and testing metrics (loss, accuracy)
-    epochs = range(1, EPOCHS+1)
+        # save model
+        torch.save(model, f'../models/model_{train_data}_{model_name}.pth')
+        # plot line charts of training and testing metrics (loss, accuracy)
+        epochs = range(1, EPOCHS+1)
 
-    # Plot and label the training and validation loss values
-    plt.plot(epochs, train_losses, label='Training Loss')
-    plt.plot(epochs, test_losses, label='Test Loss')
+        # Plot and label the training and validation loss values
+        plt.plot(epochs, train_losses, label='Training Loss')
+        plt.plot(epochs, test_losses, label='Test Loss')
 
-    # Add in a title and axes labels
-    plt.title('Training and Validation Loss')
-    plt.xlabel('Epochs')
-    plt.ylabel('Loss')
+        # Add in a title and axes labels
+        plt.title('Training and Validation Loss')
+        plt.xlabel('Epochs')
+        plt.ylabel('Loss')
 
-    # Set the tick locations
-    plt.xticks(list(range(0, EPOCHS, 2)))
+        # Set the tick locations
+        plt.xticks(list(range(0, EPOCHS, 2)))
 
-    # Display the plot
-    plt.legend(loc='best')
-    plt.savefig("../out/plot_5Layer.png")
-    plt.show()
+        # Display the plot
+        plt.legend(loc='best')
+        plt.savefig(f"../out/plot_{model_name}.jpg")
+        plt.show()
 
-    # TODO: plot some of the testing images by passing them through the trained model
-    # model = torch.load("../models/model_5Layer.pth")
-    # print(model)
-    test_data_size = len(test_dataloader)
-    random_indexes = [randint(1, test_data_size-1) for _ in range(5)]
-    sample_set = Subset(test_dataset, random_indexes)
-    
-    sample_dataloader = DataLoader(sample_set, batch_size=1, shuffle=True)
-    print(len(sample_dataloader))
-    with torch.no_grad():
-        for i, (X, y) in enumerate(sample_dataloader):
-            # move images to GPU if needed
-            X, y = X.to(device), y.to(device)
-            # compute prediction and loss
-            print(X.shape, y.shape)
-            pred = model(X)
-            plot_images(
-                [
-                    y.cpu().detach().numpy().reshape((475, 475)),
-                    X.cpu().detach().numpy().reshape((475, 475)),
-                    pred.cpu().detach().numpy().reshape((475, 475))
-                ],
-                ["Ground Truth", "Noisy", "Predicted"], f"model_5Layer_{i}"
-                )
+        # plot some of the testing images by passing them through the trained model
+        # model = torch.load("../models/model_5Layer.pth")
+        # print(model)
+        test_data_size = len(test_dataloader)
+        random_indexes = [randint(1, test_data_size-1) for _ in range(5)]
+        sample_set = Subset(test_dataset, random_indexes)
+        
+        sample_dataloader = DataLoader(sample_set, batch_size=1, shuffle=True)
+        print(len(sample_dataloader))
+        with torch.no_grad():
+            for i, (X, y) in enumerate(sample_dataloader):
+                # move images to GPU if needed
+                X, y = X.to(device), y.to(device)
+                # compute prediction and loss
+                print(X.shape, y.shape)
+                pred = model(X)
+                plot_images(
+                    [
+                        y.cpu().detach().numpy().reshape((475, 475)),
+                        X.cpu().detach().numpy().reshape((475, 475)),
+                        pred.cpu().detach().numpy().reshape((475, 475))
+                    ],
+                    ["Ground Truth", "Noisy", "Predicted"], f"model_{model_name}_{i}"
+                    )
 
     if FLAGS.demo:
-        pass
-        # TODO: set up a demo with a small subset of images
+        try:
+            model = torch.load(f"../models/model_{train_data}_{model_name}.pth")
+        except Exception as e:
+            print(e)
+        # print(model)
+        if train_data != test_data:
+            DATASET_LOC = f"../Data/nn_data/{test_data}/"
+
+            test_dataset = NoiseDataset(
+                csv_file=DATASET_LOC + "testing.csv",
+                root_dir_noisy=DATASET_LOC + "testing",
+            )
+        test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
+        test_data_size = len(test_dataloader)
+        random_indexes = [randint(1, test_data_size-1) for _ in range(5)]
+        sample_set = Subset(test_dataset, random_indexes)
+        
+        sample_dataloader = DataLoader(sample_set, batch_size=1, shuffle=True)
+        print(len(sample_dataloader))
+        with torch.no_grad():
+            for i, (X, y) in enumerate(sample_dataloader):
+                # move images to GPU if needed
+                X, y = X.to(device), y.to(device)
+                # compute prediction and loss
+                print(X.shape, y.shape)
+                pred = model(X)
+                plot_images(
+                    [
+                        y.cpu().detach().numpy().reshape((475, 475)),
+                        X.cpu().detach().numpy().reshape((475, 475)),
+                        pred.cpu().detach().numpy().reshape((475, 475))
+                    ],
+                    ["Ground Truth", "Noisy", "Predicted"], f"model_{test_data}_{model_name}_{i}"
+                    )

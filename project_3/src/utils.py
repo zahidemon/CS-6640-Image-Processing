@@ -10,7 +10,6 @@ from matplotlib import pyplot as plt
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-
 def plot_images(images, titles, model_name):
 	axes = []
 	plt.figure(figsize=(10, 16))
@@ -63,6 +62,7 @@ class CNN_1Layer(nn.Module):
         super(CNN_1Layer, self).__init__()
         self.convolution = nn.Sequential(
             nn.Conv2d(in_channels=1, out_channels=1, kernel_size=3, padding="same"),
+            torch.nn.BatchNorm2d(num_features=1),
         )
 
     def forward(self, x):
