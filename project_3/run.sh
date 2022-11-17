@@ -2,10 +2,10 @@
 
 ############################################################################################
 # 4 arguments:                                                                             #
-# 1. --demo: to skip traininng                                                             #
+# 1. --demo: to skip training                                                             #
 # 2. --model: to specify which model to train or load; default: 5_Layer                    #
 # 3. --train_data: to specify which data set to use to train themodel; default: pokemon    #
-# 4. --test_data: to spcify which dataset to use to test during demo; default:cats         #
+# 4. --test_data: to specify which dataset to use to test during demo; default:cats         #
 ############################################################################################
 
 echo "running python code..."
