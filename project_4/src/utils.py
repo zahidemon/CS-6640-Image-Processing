@@ -40,9 +40,9 @@ def butterworth_filter(image, n=1, cutoff_freq=50):
 
 
 def load_images_from_txt(directory_path, txt_filename):
-    cells_txt_filepath = directory_path + txt_filename
+    txt_filepath = directory_path + txt_filename
     image_dict = {}
-    with open(cells_txt_filepath, 'r') as f:
+    with open(txt_filepath, 'r') as f:
         for line in f:
             image_filename = line.rstrip('\n')
             img = img_as_float(imread(directory_path+image_filename))
@@ -120,9 +120,6 @@ def create_mosaic_dict_list(image_dict, thresh=0.01, cutoff_freq=50, n=1):
                 else:
                     mosaic_dict_list[anchor_img_key] = [(max_corr_img_key, max_shift, max_corr)]
 
-    image_keys_not_used = set(image_dict.keys()) - active_set
-    if len(image_keys_not_used) > 0:
-        print('Did not use the following keys (never met any pairing threshold) {0}'.format(image_keys_not_used))
     return mosaic_dict_list
 
 

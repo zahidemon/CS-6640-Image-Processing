@@ -12,7 +12,8 @@ if __name__ == "__main__":
     plt.title('Image mosaic of cells')
     plt.imshow(cells_mosaic, cmap='gray')
 
-    output_filepath = "q2_mosaic.jpg"
+    output_filepath = "data/q2_mosaic.jpg"
+    print("plotting image: ", output_filepath)
     plt.savefig(output_filepath)
     plt.show()
 
